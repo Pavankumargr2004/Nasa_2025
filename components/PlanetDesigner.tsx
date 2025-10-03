@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Content } from '@google/genai';
+import { Content } from '@google/generative-ai';
 import { getPlanetDesignerResponse } from '../services/geminiService';
 
 interface PlanetConfig {
