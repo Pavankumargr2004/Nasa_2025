@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getChatbotResponse } from '../services/geminiService';
-import { Content } from '@google/genai';
+import { Content } from '@google/generative-ai';
 
 const CosmoBuddy: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getStoryStream, getErrorMessage } from '../services/geminiService';
-import { Content } from '@google/genai';
+import { Content } from '@google/generative-ai';
 
 interface StorybookProps {
     addAchievement: (id: string) => void;
