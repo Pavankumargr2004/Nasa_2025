@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪐</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CosmoConnect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #0c0a1e; /* A deep space blue/violet */
+        color: #e0e0e0;
+      }
+
+      /* Custom scrollbar hiding utility */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      #earth-canvas-container {
+          filter: drop-shadow(0 0 100px rgba(40, 102, 110, 0.589));
+          width: 500px;
+          height: 500px;
+      }
+
+      #earth-canvas-container canvas {
+          height: 500px !important;
+          width: 500px !important;
+      }
+
+
+      @media (max-width:500px) {
+          #earth-canvas-container {
+            width: 400px;
+            height: 400px;
+          }
+          #earth-canvas-container canvas {
+              height: 400px !important;
+              width: 400px !important;
+          }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@0.2.1",
+    "three": "https://esm.sh/three@0.163.0",
+    "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.16.2",
+    "@react-three/drei": "https://esm.sh/@react-three/drei@9.102.6",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+            orbitron: ['Orbitron', 'sans-serif'],
+          },
+          animation: {
+            'spin-slow': 'spin 20s linear infinite',
+            'fade-in': 'fade-in 0.5s ease-out forwards',
+            'fade-in-fast': 'fade-in 0.3s ease-out forwards',
+            'zoom-in': 'zoom-in 0.5s ease-out forwards',
+            'blink-cursor': 'blink-cursor 0.8s infinite',
+          },
+          keyframes: {
+            'fade-in': {
+              '0%': { opacity: '0', transform: 'translateY(10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+             'zoom-in': {
+              '0%': { opacity: '0', transform: 'scale(0.95)' },
+              '100%': { opacity: '1', transform: 'scale(1)' },
+            },
+            'blink-cursor': {
+              '50%': { opacity: '0' }
+            },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+  <body class="no-scrollbar">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      /* Custom A-Frame component for handling clicks/taps */
+      AFRAME.registerComponent('click-handler', {
+        init: function () {
+          this.el.addEventListener('click', (evt) => {
+            // Emit a custom event that other components can listen to
+            this.el.emit('tap', null, false);
+          });
+        }
+      });
+      
+      /* Custom A-Frame component for a simple particle burst effect */
+      AFRAME.registerComponent('sparkle-burst', {
+        init: function () {
+            this.handleTap = this.handleTap.bind(this);
+            this.el.addEventListener('tap', this.handleTap);
+        },
+        remove: function() {
+            this.el.removeEventListener('tap', this.handleTap);
+        },
+        handleTap: function () {
+            const count = 20;
+            const duration = 1000;
+            const color = '#FFD700'; // Gold
+            const parentEl = this.el;
+            
+            const worldPosition = new THREE.Vector3();
+            parentEl.object3D.getWorldPosition(worldPosition);
+
+            for (let i = 0; i < count; i++) {
+                const sparkle = document.createElement('a-sphere');
+                parentEl.sceneEl.appendChild(sparkle);
+
+                sparkle.setAttribute('position', worldPosition);
+                
+                const destination = {
+                    x: worldPosition.x + (Math.random() - 0.5) * 1.5,
+                    y: worldPosition.y + (Math.random() - 0.5) * 1.5,
+                    z: worldPosition.z + (Math.random() - 0.5) * 1.5
+                };
+                
+                sparkle.setAttribute('radius', Math.random() * 0.05 + 0.01);
+                sparkle.setAttribute('color', color);
+                sparkle.setAttribute('material', 'shader: flat; opacity: 1;');
+
+                sparkle.setAttribute('animation', {
+                    property: 'position',
+                    to: `${destination.x} ${destination.y} ${destination.z}`,
+                    dur: duration,
+                    easing: 'easeOutQuad'
+                });
+                sparkle.setAttribute('animation__fade', {
+                    property: 'material.opacity',
+                    to: 0,
+                    dur: duration,
+                    easing: 'easeInQuad'
+                });
+
+                setTimeout(() => {
+                    if (sparkle.parentNode) {
+                        sparkle.parentNode.removeChild(sparkle);
+                    }
+                }, duration);
+            }
+        }
+      });
+    </script>
+    <script>
+      /* Custom A-Frame component for aurora effect */
+      AFRAME.registerComponent('aurora-particles', {
+        schema: {
+          count: {type: 'number', default: 500},
+          color: {type: 'color', default: '#a78bfa'},
+          size: {type: 'number', default: 0.2},
+          speed: {type: 'number', default: 0.001}
+        },
+
+        init: function () {
+          const el = this.el;
+          const data = this.data;
+          const geometry = new THREE.BufferGeometry();
+          const positions = new Float32Array(data.count * 3);
+          this.velocities = [];
+
+          for (let i = 0; i < data.count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 1] = Math.random() * 5;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 2 - 4;
+            
+            this.velocities.push({
+                y: Math.random() * data.speed,
+                yOffset: Math.random() * Math.PI, // For vertical acceleration
+                xOffset: Math.random() * Math.PI * 2, // For swirling x
+                zOffset: Math.random() * Math.PI * 2  // For swirling z
+            });
+          }
+
+          geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+          
+          const material = new THREE.PointsMaterial({
+            color: new THREE.Color(data.color),
+            size: data.size,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity: 0.7,
+            depthWrite: false
+          });
+
+          this.particles = new THREE.Points(geometry, material);
+          el.setObject3D('aurora-particles', this.particles);
+        },
+
+        tick: function (time, timeDelta) {
+          if (!this.particles) return;
+          
+          const positions = this.particles.geometry.attributes.position.array;
+          const speed = this.data.speed;
+
+          for (let i = 0; i < this.data.count; i++) {
+            const i3 = i * 3;
+            const vel = this.velocities[i];
+            
+            // More dynamic, swirling motion
+            const timeFactor = time * 0.001;
+            positions[i3] += Math.sin(timeFactor + vel.xOffset) * 0.02;
+            positions[i3 + 2] += Math.cos(timeFactor * 0.8 + vel.zOffset) * 0.015;
+            
+            // Vertical drift
+            positions[i3 + 1] += vel.y * (timeDelta / 16); // normalize speed
+            
+            // More pronounced acceleration changes to make it feel more "alive"
+            vel.y += Math.sin(time * 0.0002 + vel.yOffset) * 0.00008;
+
+            // Reset particle when it goes off-screen
+            if (positions[i3 + 1] > 5) {
+                positions[i3] = (Math.random() - 0.5) * 10;
+                positions[i3 + 1] = -1; // Start from below
+                positions[i3 + 2] = (Math.random() - 0.5) * 2 - 4;
+                vel.y = Math.random() * this.data.speed; // Reset vertical speed
+            }
+          }
+          
+          this.particles.geometry.attributes.position.needsUpdate = true;
+        }
+      });
+    </script>
+    <script>
+      /* Custom A-Frame component for solar flare effect */
+      AFRAME.registerComponent('solar-flare-system', {
+        schema: {
+          count: {type: 'number', default: 200},
+          sunRadius: {type: 'number', default: 1.5}
+        },
+
+        init: function () {
+          const el = this.el;
+          const data = this.data;
+          const geometry = new THREE.BufferGeometry();
+          const positions = new Float32Array(data.count * 3);
+          this.velocities = [];
+
+          for (let i = 0; i < data.count; i++) {
+              // Get a random point on a sphere
+              const phi = Math.random() * 2 * Math.PI;
+              const costheta = Math.random() * 2 - 1;
+              const theta = Math.acos(costheta);
+              
+              const x = data.sunRadius * Math.sin(theta) * Math.cos(phi);
+              const y = data.sunRadius * Math.sin(theta) * Math.sin(phi);
+              const z = data.sunRadius * Math.cos(theta);
+
+              const i3 = i * 3;
+              positions[i3] = x;
+              positions[i3 + 1] = y;
+              positions[i3 + 2] = z;
+
+              const velocity = new THREE.Vector3(x, y, z).normalize().multiplyScalar(Math.random() * 0.01 + 0.005);
+              this.velocities.push({
+                  velocity: velocity,
+                  lifetime: Math.random() * 200 + 100 // frames
+              });
+          }
+
+          geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+          
+          const material = new THREE.PointsMaterial({
+            color: 0xffaa00,
+            size: 0.08,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity: 0.8,
+            depthWrite: false
+          });
+
+          this.particles = new THREE.Points(geometry, material);
+          el.setObject3D('solar-flares', this.particles);
+        },
+
+        tick: function (time, timeDelta) {
+          if (!this.particles) return;
+          
+          const positions = this.particles.geometry.attributes.position.array;
+          
+          for (let i = 0; i < this.data.count; i++) {
+            const particleData = this.velocities[i];
+            particleData.lifetime -= 1;
+
+            if (particleData.lifetime <= 0) {
+              // Reset particle
+              const phi = Math.random() * 2 * Math.PI;
+              const costheta = Math.random() * 2 - 1;
+              const theta = Math.acos(costheta);
+              
+              const i3 = i * 3;
+              positions[i3] = this.data.sunRadius * Math.sin(theta) * Math.cos(phi);
+              positions[i3 + 1] = this.data.sunRadius * Math.sin(theta) * Math.sin(phi);
+              positions[i3 + 2] = this.data.sunRadius * Math.cos(theta);
+
+              particleData.velocity.set(positions[i3], positions[i3 + 1], positions[i3 + 2]).normalize().multiplyScalar(Math.random() * 0.01 + 0.005);
+              particleData.lifetime = Math.random() * 200 + 100;
+            } else {
+              // Move particle
+              const i3 = i * 3;
+              positions[i3] += particleData.velocity.x * (timeDelta / 16);
+              positions[i3 + 1] += particleData.velocity.y * (timeDelta / 16);
+              positions[i3 + 2] += particleData.velocity.z * (timeDelta / 16);
+            }
+          }
+          
+          this.particles.geometry.attributes.position.needsUpdate = true;
+        }
+      });
+    </script>
+  </body>
+</html>
